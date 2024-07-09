@@ -55,19 +55,19 @@ exports.postRating = (req, res, next) => {
     
     // Vérification que la note est entre 0 et 5
     if (rating < 0 || rating > 5) {
-        return res.status(400).json({ error: 'Rating must be between 0 and 5.' });
+        return res.status(400).json({ error: 'La note doit être entre 0 et 5.' });
     }
 
     Book.findById(req.params.id)
     .then(book => {
         if (!book) {
-            return res.status(404).json({ error: 'Book not found.' });
+            return res.status(404).json({ error: 'Livre non trouvé.' });
         }
 
         // Vérification de si l'utilisateur a déjà noté le livre
         const existingRating = book.ratings.find(r => r.userId === userId);
         if (existingRating) {
-            return res.status(400).json({ error: 'User has already rated this book.' });
+            return res.status(400).json({ error: 'Livre déja noté.' });
         }
 
         // Ajout nouvelle note
@@ -88,28 +88,45 @@ exports.postRating = (req, res, next) => {
 
 
 
-//Mis à jour du livre selon l'_id fourni 
+// Mis à jour du livre selon l'_id fourni
 exports.modifyBook = (req, res, next) => {
-  const bookObject = req.file ? {
+    const bookObject = req.file ? {
       ...JSON.parse(req.body.book),
       imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`,
-  } : { ...req.body };
-
-  delete bookObject._userId;
-  Book.findOne({ _id: req.params.id })
+    } : { ...req.body };
+  
+    delete bookObject._userId;
+  
+    Book.findOne({ _id: req.params.id })
       .then((book) => {
-          if (book.userId != req.auth.userId) {
-              res.status(401).json({ message : '403: unauthorized request'});
-          } else {
-              Book.updateOne({ _id: req.params.id}, { ...bookObject, _id: req.params.id })
-              .then(() => res.status(200).json({ message : 'Livre modifié!' }))
+        if (book.userId != req.auth.userId) { //vérifie si le userID actuel corrrespond au userID du livre
+          return res.status(401).json({ message: '403: unauthorized request' });
+        }
+  
+        if (req.file) {
+          // Supprimez l'ancienne image
+          const oldFilename = book.imageUrl.split('/images/')[1];
+          fs.unlink(`images/${oldFilename}`, (err) => {
+            if (err) {
+              console.error(`Failed to delete old image: ${err.message}`);
+            }
+  
+            // Mettez à jour le livre avec la nouvelle image
+            Book.updateOne({ _id: req.params.id }, { ...bookObject, _id: req.params.id })
+              .then(() => res.status(200).json({ message: 'Livre modifié!' }))
               .catch((error) => res.status(401).json({ error }));
-          }
+          });
+        } else {
+          // Mettez à jour le livre sans changer l'image
+          Book.updateOne({ _id: req.params.id }, { ...bookObject, _id: req.params.id })
+            .then(() => res.status(200).json({ message: 'Livre modifié!' }))
+            .catch((error) => res.status(401).json({ error }));
+        }
       })
       .catch((error) => {
-          res.status(400).json({ error });
+        res.status(400).json({ error });
       });
-};
+  };
 
 
 
