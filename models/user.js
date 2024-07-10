@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const uniqueValidator = require('mongoose-unique-validator'); //permet de ne pas avoir plusieurs utilisateur avec la même addresse mail
+const uniqueValidator = require('mongoose-unique-validator'); //permet de ne pas avoir plusieurs utilisateur avec la même adresse mail
 
 
 ///***SCHEMA USER***//

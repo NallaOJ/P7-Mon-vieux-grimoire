@@ -23,7 +23,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage }).single('image');
 
-// Middleware sharp pour redimensionner les images
+// Middleware sharp pour optimiser les images
 const resizeImage = async (req, res, next) => {
   try {
     if (!req.file) {

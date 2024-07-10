@@ -2,10 +2,10 @@ const Book = require('../models/book');
 const fs = require('fs');
 
 
-//*$*Logique métier**$//
+//***LOGIQUE METIER***//
 
 
-//Création de nouveau livre
+//CREATION NOUVEAU LIVRE
 exports.createBook = (req, res, next) => {
   const bookObject = JSON.parse(req.body.book);
   delete bookObject._id;
@@ -22,7 +22,7 @@ exports.createBook = (req, res, next) => {
 };
 
 
-//Récupération des 3 livres les mieux notés
+//RECUPERATION DES 3 LIVRES LES MIEUX NOTES
 exports.getBestRating = (req, res, next) => {
     Book.find().sort({ averageRating: -1 }).limit(3)
     .then(books => res.status(200).json(books))
@@ -30,7 +30,7 @@ exports.getBestRating = (req, res, next) => {
 }
 
 
-//Renvoie tout les livres 
+//RENVOIE DE TOUS LES LIVRES
 exports.getAllBooks = (req, res, next) => {
     Book.find()
     .then(books => res.status(200).json(books))
@@ -39,7 +39,7 @@ exports.getAllBooks = (req, res, next) => {
 
 
 
-  //Renvoie le livre selon l'_id fourni
+  //RENVOIE LIVRE SELON L'ID FOURNI
 exports.getOneBook = (req, res, next) => {
     Book.findOne({ _id: req.params.id })
     .then(book => res.status(200).json(book))
@@ -49,46 +49,50 @@ exports.getOneBook = (req, res, next) => {
 
 
 
-// Définition de la note pour le user ID fourni
+//CREATION D'UNE NOUVELLE NOTE
 exports.postRating = (req, res, next) => {
-    const { userId, rating } = req.body;
+    const { rating } = req.body;
     
     // Vérification que la note est entre 0 et 5
     if (rating < 0 || rating > 5) {
-        return res.status(400).json({ error: 'La note doit être entre 0 et 5.' });
+        return res.status(400).json({ message: 'La note doit être comprise entre 0 et 5' });
     }
 
-    Book.findById(req.params.id)
-    .then(book => {
-        if (!book) {
-            return res.status(404).json({ error: 'Livre non trouvé.' });
-        }
+    Book.findOne({ _id: req.params.id })
+        .then(book => {
+            if (!book) {
+                return res.status(404).json({ error });
+            }
 
-        // Vérification de si l'utilisateur a déjà noté le livre
-        const existingRating = book.ratings.find(r => r.userId === userId);
-        if (existingRating) {
-            return res.status(400).json({ error: 'Livre déja noté.' });
-        }
+            // Vérification si l'utilisateur a déjà noté le livre
+            const existingRating = book.ratings.find(rating => rating.userId === req.auth.userId);
+            if (existingRating) {
+                return res.status(403).json({ message: 'Unauthorized' });
+            }
 
-        // Ajout nouvelle note
-        book.ratings.push({ userId, rating });
+            // Ajout de la nouvelle note
+            const newRating = {
+                userId: req.auth.userId,
+                grade: rating
+            };
+            book.ratings.push(newRating);
 
-        // Calcule nouvelle moyenne des notes
-        const totalRatings = book.ratings.reduce((acc, curr) => acc + curr.rating, 0);
-        book.averageRating = totalRatings / book.ratings.length;
+            // Calcul nouvelle moyenne de note
+            const totalRatings = book.ratings.reduce((acc, curr) => acc + curr.grade, 0);
+            book.averageRating = totalRatings / book.ratings.length;
 
-        // Sauvegarde du livre avec les nouvelles informations de notation
-        book.save()
-        .then(updatedBook => res.status(200).json(updatedBook))
-        .catch(error => res.status(400).json({ error }));
-    })
-    .catch(error => res.status(500).json({ error }));
+           
+            book.save()
+                .then(updatedBook => res.status(201).json(updatedBook))
+                .catch(error => res.status(400).json({ error }));
+        })
+        .catch(error => res.status(500).json({ error }));
 };
 
 
 
 
-// Mis à jour du livre selon l'_id fourni
+//MISE A JOUR DU LIVRE
 exports.modifyBook = (req, res, next) => {
     const bookObject = req.file ? {
       ...JSON.parse(req.body.book),
@@ -99,25 +103,25 @@ exports.modifyBook = (req, res, next) => {
   
     Book.findOne({ _id: req.params.id })
       .then((book) => {
-        if (book.userId != req.auth.userId) { //vérifie si le userID actuel corrrespond au userID du livre
+        if (book.userId != req.auth.userId) { //vérifie si le userID actuel et le userID du livre est différent
           return res.status(401).json({ message: '403: unauthorized request' });
         }
   
         if (req.file) {
-          // Supprimez l'ancienne image
+          // Supprime l'ancienne image
           const oldFilename = book.imageUrl.split('/images/')[1];
           fs.unlink(`images/${oldFilename}`, (err) => {
             if (err) {
               console.error(`Failed to delete old image: ${err.message}`);
             }
   
-            // Mettez à jour le livre avec la nouvelle image
+            // Met à jour le livre avec la nouvelle image
             Book.updateOne({ _id: req.params.id }, { ...bookObject, _id: req.params.id })
               .then(() => res.status(200).json({ message: 'Livre modifié!' }))
               .catch((error) => res.status(401).json({ error }));
           });
         } else {
-          // Mettez à jour le livre sans changer l'image
+          // Met à jour le livre sans changer l'image
           Book.updateOne({ _id: req.params.id }, { ...bookObject, _id: req.params.id })
             .then(() => res.status(200).json({ message: 'Livre modifié!' }))
             .catch((error) => res.status(401).json({ error }));
@@ -131,7 +135,7 @@ exports.modifyBook = (req, res, next) => {
 
 
 
-//Suppression du livre selon l'_id fourni ainsi que l'image associée
+//SUPPRESSION DU LIVRE
 exports.deleteBook = (req, res, next) => {
   Book.findOne({ _id: req.params.id })
   .then(book => {

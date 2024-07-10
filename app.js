@@ -3,24 +3,16 @@ const mongoose = require('mongoose');
 const path = require('path');
 const app = express();
 
-// Traite les requêtes HTTP au format JSON
+// TRAITE LES REQUETES HTTP EN FORMAT JSON
 app.use(express.json());
 
 const booksRoutes = require('./routes/books');
 const userRoutes = require('./routes/user');
 
-/*const bdPassword = process.env.PASSWORD_BD;
-const bdUser = process.env.USER_BD;
-
-console.log('User:', bdUser);
-console.log('Password:', bdPassword);
-*/
 
 
 
-
-
-// Connexion à MongoDB
+// CONNEXION A MONGODB
 mongoose.connect("mongodb+srv://OJMVG:xVQM5kChugqTSRvS@mvg-oc-oj.rkexmki.mongodb.net/?retryWrites=true&w=majority&appName=MVG-OC-OJ")
 .then(() => console.log('Connexion à MongoDB réussie !'))
 .catch(() => console.log('Connexion à MongoDB échouée !'));
@@ -35,7 +27,7 @@ app.use((req, res, next) => {
 });
 
 
-// Routes
+// ROUTES
 app.use('/api/auth', userRoutes);
 app.use('/api/books', booksRoutes);
 app.use('/images', express.static(path.join(__dirname, 'images')));
